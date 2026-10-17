@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dealer CRM Live Test</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* DEALER CRM — LIVE TEST PAGE (temporary). Talks to the "dtest" Supabase function only. */
+:root{
+  --bg:#F4F5F7; --surface:#FFFFFF; --surface-2:#F6F7F9; --seg:#ECEDF0;
+  --ink:#111214; --text:#2C2D31; --muted:#6C6E75; --faint:#A0A2A9; --line:#E4E5E9; --line-2:#EEEFF2;
+  --blue:#1B78D2; --blue-ink:#155FA8; --blue-tint:#E8F1FB; --red:#E85036; --red-ink:#C7381F; --red-tint:#FDECE8;
+  --ok:#1E8E4A; --ok-tint:#E6F6EC; --warn:#B87108; --warn-tint:#FFF4DE; --grey-tint:#EEEFF2; --purple:#7C4FD0;
+  --shadow:0 0 0 1px rgba(17,18,20,.04),0 1px 2px rgba(17,18,20,.04),0 6px 16px -6px rgba(17,18,20,.08);
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Figtree","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono","IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; --row:60px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0B0B0D; --surface:#1A1A1D; --surface-2:#222226; --seg:#26262A; --ink:#F5F5F7; --text:#D8D8DD; --muted:#9A9AA2; --faint:#6A6A72; --line:#2C2C31; --line-2:#242428;
+  --blue:#4C9BEA; --blue-ink:#7DB6EF; --blue-tint:#16283C; --red:#F06B51; --red-ink:#F58C77; --red-tint:#3A1C17; --ok:#4CC27E; --ok-tint:#14301F; --warn:#E6A846; --warn-tint:#352711; --grey-tint:#28282C; --purple:#A98BE6;
+  --shadow:0 0 0 1px rgba(255,255,255,.05),0 6px 16px -6px rgba(0,0,0,.6); color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{color:var(--ink);margin:0;letter-spacing:-.02em}
+h1{font-size:24px}h2{font-size:16px}
+.muted{color:var(--muted)}
+.label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:1280px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));display:grid;gap:16px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top img{width:26px}
+.top .t{display:grid;gap:2px;margin-right:auto}
+.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);min-width:0}
+.card-h{display:flex;align-items:center;gap:10px;min-height:54px;padding:8px 18px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.card-h .sp{margin-left:auto}
+.card-b{padding:14px 18px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--grey-tint);color:var(--text)}
+.ok{background:var(--ok-tint);color:var(--ok)}.bad{background:var(--red-tint);color:var(--red-ink)}.warn{background:var(--warn-tint);color:var(--warn)}.info{background:var(--blue-tint);color:var(--blue-ink)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pulse .dot{animation:p 1.2s infinite}@keyframes p{50%{opacity:.25}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;border:0;background:var(--surface);color:var(--ink);font-weight:600;font-size:13px;box-shadow:var(--shadow)}
+.btn.primary{background:var(--blue);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.input{height:36px;border:0;border-radius:999px;padding:0 14px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:16px;align-items:start}
+.setup{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.chk{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px;border-radius:14px;background:var(--surface-2);font-weight:600;font-size:13px}
+.chk i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;color:#fff;background:var(--faint);flex:none}
+.chk.on i{background:var(--ok)}
+.hook{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.hook code{flex:1;min-width:0;font-family:var(--mono);font-size:12px;background:var(--surface-2);padding:9px 12px;border-radius:12px;overflow-wrap:anywhere;color:var(--ink)}
+.row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:var(--row);padding:8px 18px;border-bottom:1px solid var(--line-2);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--surface-2)}
+.row.sel{background:var(--blue-tint)}
+.row b{display:block;color:var(--ink);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row span.s{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--blue-tint);color:var(--blue-ink)}
+.ic.miss{background:var(--red-tint);color:var(--red-ink)}.ic.up{background:var(--grey-tint);color:var(--muted)}
+.ic svg{width:17px;height:17px}
+.empty{padding:28px 18px;text-align:center;color:var(--muted)}
+audio{width:100%;height:40px}
+.sum ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.heat{display:flex;gap:10px;background:var(--red-tint);color:var(--red-ink);border-radius:14px;padding:12px 14px;font-size:13px}
+.heat b{display:block}
+.task{display:flex;gap:10px;align-items:center;background:var(--blue-tint);color:var(--blue-ink);border-radius:14px;padding:12px 14px;font-size:13px;font-weight:600}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.checks div{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:12px;background:var(--surface-2);font-size:12.5px}
+.checks div i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;background:var(--faint);flex:none}
+.checks div.y i{background:var(--ok)}
+.ts{display:grid;gap:2px;max-height:420px;overflow:auto}
+.ts button{display:grid;grid-template-columns:44px 88px minmax(0,1fr);gap:10px;text-align:left;border:0;background:none;padding:8px 10px;border-radius:12px;font-size:13px;align-items:start}
+.ts button:hover{background:var(--surface-2)}
+.ts button.cur{background:var(--blue-tint)}
+.ts .who{font-weight:600;font-size:12px;color:var(--ink)}
+.ts .who.c{color:var(--purple)}
+.stack{display:grid;gap:14px}
+.err{background:var(--red-tint);color:var(--red-ink);border-radius:14px;padding:12px 14px;font-size:13px;display:grid;gap:8px}
+.drop{border:1.5px dashed var(--line);border-radius:14px;padding:18px;text-align:center;color:var(--muted);display:grid;gap:10px;justify-items:center}
+.drop.over{border-color:var(--blue);background:var(--blue-tint)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);height:40px;padding:0 18px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+td{height:52px;padding:0 18px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.tw{overflow-x:auto}
+.form{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--line-2)}
+.form .input{flex:1;min-width:140px}
+.gate{min-height:100vh;display:grid;place-items:center;padding:16px}
+.gate .card{width:min(380px,100%);padding:24px;display:grid;gap:14px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:16px;font-size:13px;z-index:9;max-width:calc(100% - 32px)}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}.setup{grid-template-columns:1fr 1fr}.checks{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const API = 'https://imrgnosnlallxpnbhhua.supabase.co/functions/v1/dtest';
+const LOGO = 'data:image/png;base64,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';
+const IC = {
+  in:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2v6h6M22 2l-6 6"/><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  miss:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 1l-6 6M17 1l6 6"/><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>'
+};
+const CHECKS=[['intro','Introduced self and dealership'],['vehicle','Confirmed vehicle and availability'],['tradein','Asked about a trade-in'],['finance','Asked cash or finance'],['appt','Booked appointment or test drive'],['contact','Confirmed email or WhatsApp']];
+let S={key:'',data:null,sel:null,busy:false,lastAudio:null};
+try{S.key=localStorage.getItem('dtest-key')||''}catch(e){}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const mmss=s=>`${Math.floor((s||0)/60)}:${pad(Math.floor((s||0)%60))}`;
+const tm=t=>{const d=new Date(t);return d.toLocaleString('en-ZA',{weekday:'short',hour:'2-digit',minute:'2-digit'})};
+function dur(ms){const s=Math.max(0,Math.round(ms/1000));const m=Math.floor(s/60);return m>=60?`${Math.floor(m/60)}h ${pad(m%60)}m`:`${m}m ${pad(s%60)}s`}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
+async function call(action,opt={}){
+  const r=await fetch(`${API}?route=api&action=${action}`,{method:opt.body?'POST':'GET',headers:{'x-dtest-key':S.key,...(opt.json?{'Content-Type':'application/json'}:{})},body:opt.body});
+  const j=await r.json().catch(()=>({error:'Bad response'}));
+  if(!r.ok) throw new Error(j.error||('Error '+r.status));
+  return j;
+}
+const STATUS={ringing:['Ringing','info pulse'],recording:['On the call','info pulse'],processing:['Transcribing','warn pulse'],done:['Ready','ok'],missed:['Missed','bad'],'missed-returned':['Missed · returned',''],failed:['Failed','bad']};
+const pill=st=>{const [l,c]=STATUS[st]||[st,''];return `<span class="pill ${c}"><span class="dot"></span>${l}</span>`};
+const sentPill=s=>s?`<span class="pill ${s==='Positive'?'ok':s==='Negative'?'bad':''}">${esc(s)}</span>`:'';
+
+function gate(msg){
+  document.getElementById('app').innerHTML=`<div class="gate"><form class="card" id="gate"><div class="top"><img src="${LOGO}" alt="Fetchwave"><div class="t"><h2>Dealer CRM · Live test</h2><span class="muted">Enter the test passcode</span></div></div>
+  <input class="input" id="pc" type="password" placeholder="Passcode" autocomplete="current-password" value="">
+  ${msg?`<div class="err">${esc(msg)}</div>`:''}<button class="btn primary" type="submit">Open</button></form></div>`;
+  document.getElementById('gate').addEventListener('submit',e=>{e.preventDefault();S.key=document.getElementById('pc').value.trim();try{localStorage.setItem('dtest-key',S.key)}catch(e){}load(true)});
+}
+async function load(first){
+  try{ S.data=await call('list'); if(first||!document.getElementById('calls')) render(); else update(); }
+  catch(e){ if(/passcode/i.test(e.message)) gate(first?'That passcode is wrong.':''); else if(first) gate(e.message); }
+}
+function leadName(id){const l=S.data.leads.find(x=>x.id===id);return l?l.name:'Unknown'}
+function callRow(c){
+  const icon=c.direction==='upload'?`<span class="ic up">${IC.up}</span>`:c.status.startsWith('missed')?`<span class="ic miss">${IC.miss}</span>`:`<span class="ic">${IC.in}</span>`;
+  return `<div class="row ${S.sel===c.id?'sel':''}" data-call="${c.id}">${icon}<div style="min-width:0"><b>${esc(leadName(c.lead_id))}${c.heat?' 🔥':''}</b><span class="s">${esc(c.direction==='upload'?'Uploaded: '+(c.from_number||''):c.from_number||'')} · ${tm(c.created_at)}${c.duration_sec?' · '+mmss(c.duration_sec):''}</span></div>${pill(c.status)}</div>`;
+}
+function detail(){
+  const c=S.data.calls.find(x=>x.id===S.sel);
+  if(!c) return `<div class="empty">Pick a call on the left, or make a test call. New calls appear here within seconds.</div>`;
+  const head=`<div class="card-h"><div style="display:grid;gap:4px"><h2>${esc(leadName(c.lead_id))}</h2><span class="muted" style="font-size:12px">${esc(c.line_source||'')} · ${tm(c.created_at)}${c.duration_sec?' · '+mmss(c.duration_sec):''}</span></div><span class="sp" style="display:flex;gap:6px">${sentPill(c.sentiment)}${pill(c.status)}</span></div>`;
+  let body='';
+  if(c.status==='failed') body+=`<div class="err"><b>Something went wrong</b><span>${esc(c.error||'')}</span><div><button class="btn" data-retry="${c.id}">Try again</button></div></div>`;
+  if(['ringing','recording'].includes(c.status)) body+=`<div class="task">The call is live. The recording arrives about 30 seconds after you hang up.</div>`;
+  if(c.status==='processing') body+=`<div class="task">Transcribing and reviewing the call. This takes about 20–60 seconds.</div>`;
+  if(c.status.startsWith('missed')) body+=`<div class="err"><b>Missed call</b><span>Nobody answered. In the full CRM this sits on Today with a timer until someone calls back.</span>${c.status==='missed'?`<div><button class="btn" data-returned="${c.id}">Mark as called back</button></div>`:''}</div>`;
+  if(c.audio) body+=`<audio id="aud" controls preload="metadata" src="${esc(c.audio)}"></audio>`;
+  if(c.heat) body+=`<div class="heat"><span>🔥</span><div><b>Heat alert for the sales manager</b>${esc(c.heat)}</div></div>`;
+  if(c.summary) body+=`<div class="sum"><div class="label" style="margin-bottom:6px">Summary</div><ul>${c.summary.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`;
+  if(c.next_action) body+=`<div class="task">📅 ${esc(c.next_action)}</div>`;
+  if(c.checks) body+=`<div><div class="label" style="margin-bottom:6px">Call checklist · ${Object.values(c.checks).filter(Boolean).length} of 6</div><div class="checks">${CHECKS.map(([k,l])=>`<div class="${c.checks[k]?'y':''}"><i>${c.checks[k]?'✓':''}</i>${l}</div>`).join('')}</div></div>`;
+  if(c.transcript) body+=`<div><div class="label" style="margin-bottom:6px">Transcript · tap a line to jump</div><div class="ts" id="ts">${c.transcript.map((s,i)=>`<button data-t="${s.t}" data-i="${i}"><span class="mono muted" style="font-size:12px">${mmss(s.t)}</span><span class="who ${s.speaker==='Customer'?'c':''}">${esc(s.speaker||'')}</span><span>${esc(s.text)}</span></button>`).join('')}</div></div>`;
+  return head+`<div class="card-b stack">${body||'<div class="muted">Waiting…</div>'}</div>`;
+}
+function leadsTable(){
+  const L=S.data.leads;
+  return `<div class="tw"><table><thead><tr><th>Lead</th><th>Phone</th><th>Source</th><th>Vehicle</th><th>Arrived</th><th>First contact</th><th>Calls</th></tr></thead><tbody>${L.length?L.map(l=>{const n=S.data.calls.filter(c=>c.lead_id===l.id).length;return `<tr><td><b style="color:var(--ink)">${esc(l.name)}</b></td><td class="mono">${esc(l.phone||'—')}</td><td>${esc(l.source)}</td><td>${esc(l.vehicle||'—')}</td><td class="mono" style="font-size:12px">${tm(l.created_at)}</td><td>${l.first_contact_at?`<span class="pill ok">${dur(new Date(l.first_contact_at)-new Date(l.created_at))}</span>`:`<button class="btn" data-contacted="${l.id}" style="height:28px;font-size:12px">Mark contacted</button>`}</td><td class="mono">${n}</td></tr>`}).join(''):'<tr><td colspan="7"><div class="empty">No leads yet. A call to the test line creates one automatically.</div></td></tr>'}</tbody></table></div>
+  <form class="form" id="leadform"><input class="input" id="ln" placeholder="Name, e.g. Matt Test" required><input class="input" id="lp" placeholder="Phone, e.g. 082 123 4567"><input class="input" id="lv" placeholder="Vehicle (optional)"><button class="btn primary" type="submit">Add test lead</button></form>`;
+}
+function render(){
+  const d=S.data, r=d.config.ready;
+  if(!S.sel && d.calls[0]) S.sel=d.calls[0].id;
+  document.getElementById('app').innerHTML=`<div class="wrap">
+    <div class="top"><img src="${LOGO}" alt="Fetchwave"><div class="t"><h1>Dealer CRM · Live test</h1><span class="muted">Test data only · refreshes every few seconds</span></div><span class="pill ok"><span class="dot"></span>Live</span><button class="btn" id="logout">Lock</button></div>
+    <section class="card"><div class="card-h"><h2>Setup</h2><span class="sp muted" style="font-size:12px">All four need a tick before live calls work</span></div><div class="card-b">
+      <div class="setup">
+        <div class="chk ${r.openai?'on':''}"><i>${r.openai?'✓':''}</i>OpenAI key</div>
+        <div class="chk ${r.twilio?'on':''}"><i>${r.twilio?'✓':''}</i>Twilio keys</div>
+        <div class="chk ${r.forward?'on':''}"><i>${r.forward?'✓':''}</i>Your cellphone</div>
+        <div class="chk ${d.config.line?'on':''}"><i>${d.config.line?'✓':''}</i>${d.config.line?'Line '+esc(d.config.line):'Test line number'}</div>
+      </div>
+      <div class="hook"><span class="label">Twilio "A call comes in" link</span><code id="hk">${esc(d.config.webhook)}</code><button class="btn" id="copy">Copy</button></div>
+    </div></section>
+    <div class="grid">
+      <div class="stack">
+        <section class="card"><div class="card-h"><h2>Calls</h2><span class="sp pill" id="ccount">${d.calls.length}</span></div><div id="calls">${d.calls.length?d.calls.map(callRow).join(''):'<div class="empty">No calls yet. Call the test line, or upload a recording below.</div>'}</div></section>
+        <section class="card"><div class="card-h"><h2>Upload a recording</h2></div><div class="card-b"><label class="drop" id="drop"><span>Drop an audio file here (m4a, mp3, wav, mp4) or</span><span class="btn">Choose file</span><input type="file" id="file" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.mp4" hidden></label></div></section>
+      </div>
+      <section class="card" id="detail">${detail()}</section>
+    </div>
+    <section class="card"><div class="card-h"><h2>Leads</h2><span class="sp muted" style="font-size:12px">Add your own number as a lead to test caller matching</span></div><div id="leads">${leadsTable()}</div></section>
+  </div>`;
+  wire();
+}
+function update(){
+  const c=document.getElementById('calls'); if(!c) return render();
+  c.innerHTML=S.data.calls.length?S.data.calls.map(callRow).join(''):'<div class="empty">No calls yet.</div>';
+  document.getElementById('ccount').textContent=S.data.calls.length;
+  const cur=S.data.calls.find(x=>x.id===S.sel);
+  const sig=cur?cur.status+'|'+(cur.audio?1:0)+'|'+(cur.transcript?1:0):'';
+  if(sig!==S._sig){ const a=document.getElementById('aud'); if(!a||a.paused){ document.getElementById('detail').innerHTML=detail(); wireDetail(); S._sig=sig; } }
+  if(!document.activeElement||!document.activeElement.closest('#leadform')){ document.getElementById('leads').innerHTML=leadsTable(); wireLeads(); }
+  wireRows();
+}
+function wireRows(){ document.querySelectorAll('[data-call]').forEach(el=>el.onclick=()=>{S.sel=el.dataset.call;S._sig=null;document.querySelectorAll('[data-call]').forEach(x=>x.classList.toggle('sel',x===el));document.getElementById('detail').innerHTML=detail();wireDetail();}); }
+function wireDetail(){
+  const a=document.getElementById('aud'), ts=document.getElementById('ts');
+  if(a&&ts){ ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{a.currentTime=+b.dataset.t;a.play().catch(()=>{})});
+    a.ontimeupdate=()=>{let cur=-1;ts.querySelectorAll('button').forEach((b,i)=>{if(+b.dataset.t<=a.currentTime)cur=i});ts.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('cur',i===cur))}; }
+  document.querySelectorAll('[data-retry]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await call('retry',{json:1,body:JSON.stringify({id:b.dataset.retry})});toast('Trying again…');setTimeout(()=>load(),1500)}catch(e){toast(e.message)}});
+  document.querySelectorAll('[data-returned]').forEach(b=>b.onclick=async()=>{await call('returned',{json:1,body:JSON.stringify({id:b.dataset.returned})});load()});
+}
+function wireLeads(){
+  const f=document.getElementById('leadform'); if(f) f.onsubmit=async e=>{e.preventDefault();try{await call('lead',{json:1,body:JSON.stringify({name:document.getElementById('ln').value,phone:document.getElementById('lp').value,vehicle:document.getElementById('lv').value})});toast('Test lead added');load()}catch(err){toast(err.message)}};
+  document.querySelectorAll('[data-contacted]').forEach(b=>b.onclick=async()=>{await call('contacted',{json:1,body:JSON.stringify({id:b.dataset.contacted})});load()});
+}
+function wire(){
+  wireRows(); wireDetail(); wireLeads();
+  document.getElementById('logout').onclick=()=>{try{localStorage.removeItem('dtest-key')}catch(e){};S.key='';gate()};
+  document.getElementById('copy').onclick=()=>{const t=document.getElementById('hk').textContent;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied')).catch(()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('hk'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Selected — press Cmd+C')})};
+  const drop=document.getElementById('drop'), file=document.getElementById('file');
+  const send=async f=>{ if(!f) return; drop.innerHTML='<span>Uploading '+esc(f.name)+'…</span>'; const fd=new FormData(); fd.append('file',f);
+    try{ const j=await call('upload',{body:fd}); S.sel=j.id; S._sig=null; toast('Uploaded. Transcribing now…'); await load(); render(); }catch(e){ toast(e.message); render(); } };
+  file.onchange=()=>send(file.files[0]);
+  drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')}; drop.ondragleave=()=>drop.classList.remove('over');
+  drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');send(e.dataTransfer.files[0])};
+}
+if(S.key) load(true); else gate();
+setInterval(()=>{ if(S.key && S.data) load(); }, 4000);
+</script>
+</body>
+</html>
