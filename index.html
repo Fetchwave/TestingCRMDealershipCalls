@@ -89,6 +89,14 @@ tr:last-child td{border-bottom:0}
 .tw{overflow-x:auto}
 .form{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--line-2)}
 .form .input{flex:1;min-width:140px}
+.timer{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-family:var(--mono);font-weight:600;font-size:12px;background:var(--ok-tint);color:var(--ok)}
+.timer.w{background:var(--warn-tint);color:var(--warn)}.timer.l{background:var(--red-tint);color:var(--red-ink)}
+.lead-ans td{height:auto;padding:10px 18px 14px;background:var(--surface-2);white-space:normal}
+.ans{display:flex;flex-wrap:wrap;gap:8px}.ans span{background:var(--surface);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:var(--shadow)}
+.ans b{color:var(--ink)}
+tr.lr{cursor:pointer}
+select.input{-webkit-appearance:none;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8C93' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.lines{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .gate{min-height:100vh;display:grid;place-items:center;padding:16px}
 .gate .card{width:min(380px,100%);padding:24px;display:grid;gap:14px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:16px;font-size:13px;z-index:9;max-width:calc(100% - 32px)}
@@ -120,7 +128,7 @@ async function call(action,opt={}){
   if(!r.ok) throw new Error(j.error||('Error '+r.status));
   return j;
 }
-const STATUS={ringing:['Ringing','info pulse'],recording:['On the call','info pulse'],processing:['Transcribing','warn pulse'],done:['Ready','ok'],missed:['Missed','bad'],'missed-returned':['Missed · returned',''],failed:['Failed','bad']};
+const STATUS={ringing:['Ringing','info pulse'],recording:['On the call','info pulse'],processing:['Transcribing','warn pulse'],done:['Ready','ok'],missed:['Missed','bad'],'missed-returned':['Missed · returned',''],failed:['Failed','bad'],'no-answer':["Buyer didn't answer",'bad']};
 const pill=st=>{const [l,c]=STATUS[st]||[st,''];return `<span class="pill ${c}"><span class="dot"></span>${l}</span>`};
 const sentPill=s=>s?`<span class="pill ${s==='Positive'?'ok':s==='Negative'?'bad':''}">${esc(s)}</span>`:'';
 
@@ -136,8 +144,8 @@ async function load(first){
 }
 function leadName(id){const l=S.data.leads.find(x=>x.id===id);return l?l.name:'Unknown'}
 function callRow(c){
-  const icon=c.direction==='upload'?`<span class="ic up">${IC.up}</span>`:c.status.startsWith('missed')?`<span class="ic miss">${IC.miss}</span>`:`<span class="ic">${IC.in}</span>`;
-  return `<div class="row ${S.sel===c.id?'sel':''}" data-call="${c.id}">${icon}<div style="min-width:0"><b>${esc(leadName(c.lead_id))}${c.heat?' 🔥':''}</b><span class="s">${esc(c.direction==='upload'?'Uploaded: '+(c.from_number||''):c.from_number||'')} · ${tm(c.created_at)}${c.duration_sec?' · '+mmss(c.duration_sec):''}</span></div>${pill(c.status)}</div>`;
+  const icon=c.direction==='upload'?`<span class="ic up">${IC.up}</span>`:c.direction==='outbound'?`<span class="ic" style="background:var(--ok-tint);color:var(--ok)">${IC.in}</span>`:c.status.startsWith('missed')?`<span class="ic miss">${IC.miss}</span>`:`<span class="ic">${IC.in}</span>`;
+  return `<div class="row ${S.sel===c.id?'sel':''}" data-call="${c.id}">${icon}<div style="min-width:0"><b>${esc(leadName(c.lead_id))}${c.heat?' 🔥':''}</b><span class="s">${c.direction==='upload'?'Uploaded: '+esc(c.from_number||''):c.direction==='outbound'?'Outbound call · '+esc(c.line_source||''):'Inbound · '+esc(c.line_source||'')} · ${tm(c.created_at)}${c.duration_sec?' · '+mmss(c.duration_sec):''}</span></div>${pill(c.status)}</div>`;
 }
 function detail(){
   const c=S.data.calls.find(x=>x.id===S.sel);
@@ -145,7 +153,9 @@ function detail(){
   const head=`<div class="card-h"><div style="display:grid;gap:4px"><h2>${esc(leadName(c.lead_id))}</h2><span class="muted" style="font-size:12px">${esc(c.line_source||'')} · ${tm(c.created_at)}${c.duration_sec?' · '+mmss(c.duration_sec):''}</span></div><span class="sp" style="display:flex;gap:6px">${sentPill(c.sentiment)}${pill(c.status)}</span></div>`;
   let body='';
   if(c.status==='failed') body+=`<div class="err"><b>Something went wrong</b><span>${esc(c.error||'')}</span><div><button class="btn" data-retry="${c.id}">Try again</button></div></div>`;
-  if(['ringing','recording'].includes(c.status)) body+=`<div class="task">The call is live. The recording arrives about 30 seconds after you hang up.</div>`;
+  if(c.status==='ringing' && c.direction==='outbound') body+=`<div class="task">Your phone is ringing. Answer it and you'll be connected to the buyer.</div>`;
+  else if(['ringing','recording'].includes(c.status)) body+=`<div class="task">The call is live. The recording arrives about 30 seconds after you hang up.</div>`;
+  if(c.status==='no-answer') body+=`<div class="err"><b>The buyer didn't answer</b><span>No recording. In the full CRM this becomes a follow-up task.</span></div>`;
   if(c.status==='processing') body+=`<div class="task">Transcribing and reviewing the call. This takes about 20–60 seconds.</div>`;
   if(c.status.startsWith('missed')) body+=`<div class="err"><b>Missed call</b><span>Nobody answered. In the full CRM this sits on Today with a timer until someone calls back.</span>${c.status==='missed'?`<div><button class="btn" data-returned="${c.id}">Mark as called back</button></div>`:''}</div>`;
   if(c.audio) body+=`<audio id="aud" controls preload="metadata" src="${esc(c.audio)}"></audio>`;
@@ -156,10 +166,23 @@ function detail(){
   if(c.transcript) body+=`<div><div class="label" style="margin-bottom:6px">Transcript · tap a line to jump</div><div class="ts" id="ts">${c.transcript.map((s,i)=>`<button data-t="${s.t}" data-i="${i}"><span class="mono muted" style="font-size:12px">${mmss(s.t)}</span><span class="who ${s.speaker==='Customer'?'c':''}">${esc(s.speaker||'')}</span><span>${esc(s.text)}</span></button>`).join('')}</div></div>`;
   return head+`<div class="card-b stack">${body||'<div class="muted">Waiting…</div>'}</div>`;
 }
+const SOURCES=['Website enquiry','Facebook Lead Ad','AutoTrader','Cars.co.za','FB Marketplace','Google Ads','Walk-in'];
+function speed(l){
+  if(l.first_contact_at) return `<span class="pill ok">${dur(new Date(l.first_contact_at)-new Date(l.created_at))}</span>`;
+  const ms=Date.now()-new Date(l.created_at); return `<span class="timer ${ms>15*6e4?'l':ms>5*6e4?'w':''}" data-since="${new Date(l.created_at).getTime()}">${dur(ms)}</span>`;
+}
 function leadsTable(){
-  const L=S.data.leads;
-  return `<div class="tw"><table><thead><tr><th>Lead</th><th>Phone</th><th>Source</th><th>Vehicle</th><th>Arrived</th><th>First contact</th><th>Calls</th></tr></thead><tbody>${L.length?L.map(l=>{const n=S.data.calls.filter(c=>c.lead_id===l.id).length;return `<tr><td><b style="color:var(--ink)">${esc(l.name)}</b></td><td class="mono">${esc(l.phone||'—')}</td><td>${esc(l.source)}</td><td>${esc(l.vehicle||'—')}</td><td class="mono" style="font-size:12px">${tm(l.created_at)}</td><td>${l.first_contact_at?`<span class="pill ok">${dur(new Date(l.first_contact_at)-new Date(l.created_at))}</span>`:`<button class="btn" data-contacted="${l.id}" style="height:28px;font-size:12px">Mark contacted</button>`}</td><td class="mono">${n}</td></tr>`}).join(''):'<tr><td colspan="7"><div class="empty">No leads yet. A call to the test line creates one automatically.</div></td></tr>'}</tbody></table></div>
-  <form class="form" id="leadform"><input class="input" id="ln" placeholder="Name, e.g. Matt Test" required><input class="input" id="lp" placeholder="Phone, e.g. 082 123 4567"><input class="input" id="lv" placeholder="Vehicle (optional)"><button class="btn primary" type="submit">Add test lead</button></form>`;
+  const L=S.data.leads; S.open=S.open||{};
+  return `<div class="tw"><table><thead><tr><th>Lead</th><th>Phone</th><th>Source</th><th>Vehicle</th><th>Arrived</th><th>Speed to lead</th><th>Calls</th><th></th></tr></thead><tbody>${L.length?L.map(l=>{const n=S.data.calls.filter(c=>c.lead_id===l.id).length;const ans=(l.answers||[]);return `<tr class="lr" data-lead="${l.id}"><td><b style="color:var(--ink)">${esc(l.name)}</b>${ans.length?` <span class="muted" style="font-size:12px">· ${ans.length} answers</span>`:''}</td><td class="mono">${esc(l.phone||'—')}</td><td>${esc(l.source)}</td><td>${esc(l.vehicle||'—')}</td><td class="mono" style="font-size:12px">${tm(l.created_at)}</td><td>${speed(l)}</td><td class="mono">${n}</td><td style="text-align:right">${l.phone?`<button class="btn primary" data-dial="${l.id}" style="height:30px;font-size:12px">${IC.in.replace('<svg','<svg width="14" height="14"')} Call</button>`:''}</td></tr>${S.open[l.id]?`<tr class="lead-ans"><td colspan="8"><div class="ans">${l.campaign?`<span>Campaign: <b>${esc(l.campaign)}</b></span>`:''}${ans.map(([q,v])=>`<span>${esc(q)}: <b>${esc(v)}</b></span>`).join('')||'<span>No form answers</span>'}</div></td></tr>`:''}`}).join(''):'<tr><td colspan="8"><div class="empty">No leads yet. Submit the form below, or call the test line.</div></td></tr>'}</tbody></table></div>
+  <form class="form" id="leadform">
+    <input class="input" id="ln" placeholder="Name" required>
+    <input class="input" id="lp" placeholder="Phone, e.g. 082 123 4567">
+    <input class="input" id="lv" placeholder="Vehicle, e.g. Toyota Hilux">
+    <select class="input" id="ls" aria-label="Source">${SOURCES.map(x=>`<option>${x}</option>`).join('')}</select>
+    <select class="input" id="lt" aria-label="Trade-in"><option>No trade-in</option><option>Has a trade-in</option></select>
+    <select class="input" id="lf" aria-label="Cash or finance"><option>Finance</option><option>Cash</option></select>
+    <button class="btn primary" type="submit">Submit test lead</button>
+  </form>`;
 }
 function render(){
   const d=S.data, r=d.config.ready;
@@ -174,15 +197,17 @@ function render(){
         <div class="chk ${d.config.line?'on':''}"><i>${d.config.line?'✓':''}</i>${d.config.line?'Line '+esc(d.config.line):'Test line number'}</div>
       </div>
       <div class="hook"><span class="label">Twilio "A call comes in" link</span><code id="hk">${esc(d.config.webhook)}</code><button class="btn" id="copy">Copy</button></div>
+      <div class="lines"><span class="label">Tracking lines</span>${(d.lines||[]).map(x=>`<span class="pill info">${esc(x.number)} → ${esc(x.source)}</span>`).join('')||'<span class="muted" style="font-size:12px">None yet. Calls show as "Test tracking line".</span>'}
+        <form id="lineform" style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto"><input class="input" id="lnum" placeholder="+27877248717" style="width:150px"><select class="input" id="lsrc" aria-label="Source">${SOURCES.map(x=>`<option>${x}</option>`).join('')}</select><button class="btn" type="submit">Save line</button></form></div>
     </div></section>
     <div class="grid">
       <div class="stack">
-        <section class="card"><div class="card-h"><h2>Calls</h2><span class="sp pill" id="ccount">${d.calls.length}</span></div><div id="calls">${d.calls.length?d.calls.map(callRow).join(''):'<div class="empty">No calls yet. Call the test line, or upload a recording below.</div>'}</div></section>
+        <section class="card"><div class="card-h"><h2>Calls</h2><span class="muted" style="font-size:12px">Inbound, outbound and uploads</span><span class="sp pill" id="ccount">${d.calls.length}</span></div><div id="calls">${d.calls.length?d.calls.map(callRow).join(''):'<div class="empty">No calls yet. Call the test line, or upload a recording below.</div>'}</div></section>
         <section class="card"><div class="card-h"><h2>Upload a recording</h2></div><div class="card-b"><label class="drop" id="drop"><span>Drop an audio file here (m4a, mp3, wav, mp4) or</span><span class="btn">Choose file</span><input type="file" id="file" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.mp4" hidden></label></div></section>
       </div>
       <section class="card" id="detail">${detail()}</section>
     </div>
-    <section class="card"><div class="card-h"><h2>Leads</h2><span class="sp muted" style="font-size:12px">Add your own number as a lead to test caller matching</span></div><div id="leads">${leadsTable()}</div></section>
+    <section class="card"><div class="card-h"><h2>Leads</h2><span class="sp muted" style="font-size:12px">Submit a test lead with Matt's number, then press Call</span></div><div id="leads">${leadsTable()}</div></section>
   </div>`;
   wire();
 }
@@ -193,7 +218,7 @@ function update(){
   const cur=S.data.calls.find(x=>x.id===S.sel);
   const sig=cur?cur.status+'|'+(cur.audio?1:0)+'|'+(cur.transcript?1:0):'';
   if(sig!==S._sig){ const a=document.getElementById('aud'); if(!a||a.paused){ document.getElementById('detail').innerHTML=detail(); wireDetail(); S._sig=sig; } }
-  if(!document.activeElement||!document.activeElement.closest('#leadform')){ document.getElementById('leads').innerHTML=leadsTable(); wireLeads(); }
+  if(!document.activeElement||!document.activeElement.closest('#leadform,#lineform')){ document.getElementById('leads').innerHTML=leadsTable(); wireLeads(); }
   wireRows();
 }
 function wireRows(){ document.querySelectorAll('[data-call]').forEach(el=>el.onclick=()=>{S.sel=el.dataset.call;S._sig=null;document.querySelectorAll('[data-call]').forEach(x=>x.classList.toggle('sel',x===el));document.getElementById('detail').innerHTML=detail();wireDetail();}); }
@@ -205,8 +230,11 @@ function wireDetail(){
   document.querySelectorAll('[data-returned]').forEach(b=>b.onclick=async()=>{await call('returned',{json:1,body:JSON.stringify({id:b.dataset.returned})});load()});
 }
 function wireLeads(){
-  const f=document.getElementById('leadform'); if(f) f.onsubmit=async e=>{e.preventDefault();try{await call('lead',{json:1,body:JSON.stringify({name:document.getElementById('ln').value,phone:document.getElementById('lp').value,vehicle:document.getElementById('lv').value})});toast('Test lead added');load()}catch(err){toast(err.message)}};
-  document.querySelectorAll('[data-contacted]').forEach(b=>b.onclick=async()=>{await call('contacted',{json:1,body:JSON.stringify({id:b.dataset.contacted})});load()});
+  const f=document.getElementById('leadform'); const g=id=>document.getElementById(id).value;
+  if(f) f.onsubmit=async e=>{e.preventDefault();try{await call('lead',{json:1,body:JSON.stringify({name:g('ln'),phone:g('lp'),vehicle:g('lv'),source:g('ls'),campaign:g('ls')==='Facebook Lead Ad'?'Test campaign — Instant Form':g('ls')==='Website enquiry'?'Vehicle page enquiry':'',answers:[['Vehicle',g('lv')||'Not given'],['Trade-in',g('lt')],['Cash or finance',g('lf')]]})});toast('Lead submitted. The speed-to-lead timer is running.');load()}catch(err){toast(err.message)}};
+  document.querySelectorAll('[data-lead]').forEach(r=>r.onclick=e=>{ if(e.target.closest('button')) return; S.open=S.open||{}; S.open[r.dataset.lead]=!S.open[r.dataset.lead]; document.getElementById('leads').innerHTML=leadsTable(); wireLeads(); });
+  document.querySelectorAll('[data-dial]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{const j=await call('call',{json:1,body:JSON.stringify({id:b.dataset.dial})});S.sel=j.id;S._sig=null;toast('Calling… your phone rings first, then the buyer.');await load();render()}catch(err){toast(err.message);b.disabled=false}});
+  const lf=document.getElementById('lineform'); if(lf) lf.onsubmit=async e=>{e.preventDefault();try{await call('line',{json:1,body:JSON.stringify({number:document.getElementById('lnum').value,source:document.getElementById('lsrc').value})});toast('Line saved');load(true)}catch(err){toast(err.message)}};
 }
 function wire(){
   wireRows(); wireDetail(); wireLeads();
@@ -221,6 +249,7 @@ function wire(){
 }
 if(S.key) load(true); else gate();
 setInterval(()=>{ if(S.key && S.data) load(); }, 4000);
+setInterval(()=>{ document.querySelectorAll('[data-since]').forEach(el=>{ const ms=Date.now()-(+el.dataset.since); el.textContent=dur(ms); el.classList.toggle('w',ms>5*6e4&&ms<=15*6e4); el.classList.toggle('l',ms>15*6e4); }); }, 1000);
 </script>
 </body>
 </html>
