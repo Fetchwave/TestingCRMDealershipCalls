@@ -480,6 +480,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .ok-box{display:flex;gap:10px;align-items:flex-start;background:var(--ok-tint);color:var(--ok);border-radius:var(--r-sm);padding:12px 14px;font-size:13px}
 .ok-box svg{width:16px;height:16px;flex:none;margin-top:2px}.ok-box b{display:block;color:var(--ok)}.ok-box span{color:var(--text)}
 .q-meta .pill{height:22px;font-size:11.5px}
+.crash{position:fixed;inset:0;z-index:999;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.35)}
+.crash .card{max-width:440px;width:100%;padding:22px;display:grid;gap:10px}
+.crash b{color:var(--ink);font-size:15px}.crash span{color:var(--text);font-size:13px;word-break:break-word}
 </style>
 
 </head>
@@ -594,11 +597,13 @@ const leadName = id => (lead(id) || {}).name || 'Unknown caller';
 /* ---------- API ---------- */
 async function api(action, body){
   const isForm = body instanceof FormData;
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 25000);
   const r = await fetch(`${API}?route=api&action=${action}`, {
+    signal: ctl.signal,
     method: body ? 'POST' : 'GET',
     headers: { 'x-dtest-key': S.key, ...(body && !isForm ? {'Content-Type':'application/json'} : {}) },
     body: body ? (isForm ? body : JSON.stringify(body)) : undefined
-  });
+  }).catch(e => { throw new Error(e.name === 'AbortError' ? "The server didn't answer in time. Check your connection and reload." : "Couldn't reach the server. Check your connection and reload."); }).finally(() => clearTimeout(tm));
   const j = await r.json().catch(() => ({ error: 'The server sent a bad response' }));
   if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
   return j;
@@ -1130,7 +1135,7 @@ async function load(force){
     const now = Date.now();
     d.calls.forEach(c => { c._at = now; const old = S.data && S.data.calls.find(x => x.id === c.id); if (old && old.audio && c.audio && old.recording_path === c.recording_path && now - old._at < 45*6e4) { c.audio = old.audio; c._at = old._at; } });
     S.data = d;
-    if (first) { S.sig = sig; shell(); render(); return; }
+    if (first) { S.sig = sig; shell(); try { render(); } catch (err) { console.error(err); crash(err.message); } return; }
     if (sig !== S.sig || force) { S.sig = sig; if (force || !busy()) render(); renderDrawer(); }
   } catch (e) {
     if (/passcode/i.test(e.message)) { try { localStorage.removeItem('fw-dealer-key'); } catch(_) {} S.key = ''; S.data = null; gate('That passcode is wrong.'); }
@@ -1152,7 +1157,16 @@ setInterval(() => {
     if (el.dataset.big) { el.textContent = dur(ms); el.classList.remove('ok','warn','late'); el.classList.add(tclass(ms)||'ok'); return; }
     const sp = el.querySelector('span'); if (sp) sp.textContent = dur(ms); el.classList.remove('warn','late'); const c = tclass(ms); if (c) el.classList.add(c); });
 }, 1000);
-if (S.key) load(true); else gate();
+// Never leave a blank screen: show what went wrong instead
+function crash(msg){
+  if (document.getElementById('crash')) return;
+  const d = document.createElement('div'); d.id = 'crash'; d.className = 'crash';
+  d.innerHTML = `<div class="card"><b>Something went wrong on this screen</b><span>${esc(String(msg||'Unknown error'))}</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="location.reload()">Reload</button><button class="btn" onclick="try{localStorage.removeItem('fw-dealer-view')}catch(e){};location.reload()">Reload on Today</button></div></div>`;
+  document.body.appendChild(d);
+}
+window.addEventListener('error', e => crash(e.message + (e.lineno ? ` (line ${e.lineno})` : '')));
+window.addEventListener('unhandledrejection', e => crash(e.reason && e.reason.message || e.reason));
+if (S.key) { document.body.innerHTML = `<div class="gate"><div class="card" style="display:grid;gap:10px;justify-items:center;text-align:center"><img src="${LOGO}" alt="" style="width:40px;height:40px"><b>Loading your CRM…</b><span class="muted" style="font-size:13px">Connecting to the server</span></div></div>`; load(true); } else gate();
 
 </script>
 </body>
